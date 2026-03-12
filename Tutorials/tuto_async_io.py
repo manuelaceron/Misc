@@ -185,6 +185,7 @@ async def main():
     # Gather taks:
     # if one fails, shows exception and continue with others
     tasks = [asyncio.create_task(async_function(i)) for i in range(1,3)]
+    # gather manually waits for all tasks
     results = await asyncio.gather(*tasks, return_exceptions=True)
     print(f"Taks results: {results}")
     
