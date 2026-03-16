@@ -49,6 +49,10 @@ CPU Bound:
  - Computation, processing
  - We can use multiple processes than async or threads
  
+aysync:
+ - one worker capable of multitasking and switching tasks while waiting
+threads:
+ - many workers in one process, doing tasks at the same time, but only one thread executed python code at at time (not good for CPU work)
 I can use a profiler to determine where my script is taking more resources (IO Bound or CPU bound)
 """
 
