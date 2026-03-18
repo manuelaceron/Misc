@@ -1,8 +1,8 @@
-#Python is static type
-#https://www.youtube.com/watch?v=fM4O9bModsE
+# Python is static type
+# https://www.youtube.com/watch?v=fM4O9bModsE
 
-#Type hints:
-""" Annotation that specifies the expected value of a variable, a class attribute, or a function parameter or retun value """
+# Type hints:
+"""Annotation that specifies the expected value of a variable, a class attribute, or a function parameter or retun value"""
 
 """ 
 Type hinting:
@@ -13,15 +13,17 @@ python ignores types at runtime, even if its wrong, it wont say anything, they d
 
 """
 
-def create_user(first_name:str, last_name:str, age:int) -> dict:
+
+def create_user(first_name: str, last_name: str, age: int) -> dict:
     email = f"{first_name.lower()}_{last_name.lower()}@gmail.com"
 
     return {
         "first_name": first_name,
         "first_name": last_name,
         "email": email,
-        "age": age
+        "age": age,
     }
+
 
 user1: dict = create_user("pandi", "ceron", 9)
 print(user1)
@@ -54,7 +56,8 @@ mainly used with dynamic data fron other sources, protecting
 API, payload,s external sources
  """
 
-def create_user_data_validation(first_name:str, last_name:str, age:int) -> dict:
+
+def create_user_data_validation(first_name: str, last_name: str, age: int) -> dict:
     email = f"{first_name.lower()}_{last_name.lower()}@gmail.com"
 
     # example manual validation
@@ -67,8 +70,9 @@ def create_user_data_validation(first_name:str, last_name:str, age:int) -> dict:
         "first_name": first_name,
         "first_name": last_name,
         "email": email,
-        "age": age
+        "age": age,
     }
+
 
 user2: dict = create_user_data_validation("rocco", "ceron", 6)
 print(user2)
@@ -76,8 +80,11 @@ print(user2)
 
 from pydantic import validate_call
 
+
 @validate_call
-def create_user_data_validation_pydantic(first_name:str, last_name:str, age:int) -> dict:
+def create_user_data_validation_pydantic(
+    first_name: str, last_name: str, age: int
+) -> dict:
     email = f"{first_name.lower()}_{last_name.lower()}@gmail.com"
 
     # example manual validation
@@ -90,8 +97,9 @@ def create_user_data_validation_pydantic(first_name:str, last_name:str, age:int)
         "first_name": first_name,
         "first_name": last_name,
         "email": email,
-        "age": age
+        "age": age,
     }
+
 
 user3: dict = create_user_data_validation_pydantic("rocco", "ceron", "fff")
 print(user3)

@@ -1,4 +1,4 @@
-""" 
+"""
 
 Async IO
 
@@ -59,19 +59,20 @@ I can use a profiler to determine where my script is taking more resources (IO B
 import asyncio
 import time
 
+
 async def async_function(test_param: str, time: int = 1) -> str:
     print("Start doing something....", flush=True)
-    
+
     # the wait will suspend this task/function until the process next to it
     # in this case, sleep, finishes...
     await asyncio.sleep(time)
-    
+
     # time.sleep() dows not support await, makes code run sequentially
     # it does not suspennd the function but block it, then, no other taks can run menawhile
     # time.sleep() is an example of any other syncrhonous code, for example web requests
     # for that case we'd need asynchronous request library
     # another alternative is to use the synchronous fucntion and pass it to threads.... see normal_sync_fcn...>
-    
+
     print(f"Process {test_param} finished")
     return f"Async result: {test_param}"
 
@@ -81,25 +82,21 @@ def normal_sync_fcn(param):
     time.sleep(param)
     print(f"Done with {param}", flush=True)
     return f"Result of {param}"
-    
-    
-    
-    
-    
+
+
 # define an async function
 async def main():
-    
-    """ COROUTINE """
+    """COROUTINE"""
     print("EXAMPLE COROUTINE")
-    #Create coroutine object
+    # Create coroutine object
     coroutine_obj = async_function("TEST")
     print(coroutine_obj)
-    
+
     # Here it runs the function
     # Both scheduled in the event loop and run to completion at the same time
     coroutine_result = await coroutine_obj
     print(coroutine_result)
-    
+
     """ TASK """
     print("EXAMPLE TASK")
     # task scheduled to the event loop to run whenever it gets a chance
@@ -109,13 +106,12 @@ async def main():
     # we can queue up many tasks and the event loop will run them when its ready
     task = asyncio.create_task(async_function("TEST"))
     print(task)
-    
+
     # await the task: the await scheduled the task in the event loop and run to completion
     # the await suspends this main coroutine, until the process in task finishes...
     task_result = await task
     print(task_result)
-    
-    
+
     """ Example 1 """
     print("EXAMPLE 1: using many coroutines")
     # this example has same behaviour as synchronous code, there is not concurrency... first coroutine 1, then coroutine 2
@@ -124,15 +120,15 @@ async def main():
     print(task1)
     task_result1 = await task1
     print(task_result1)
-    
+
     task2 = async_function("TEST2")
     print(task2)
     task_result2 = await task2
     print(task_result2)
-    
+
     """ Example 2 """
     print("EXAMPLE 2: using many tasks")
-    
+
     # the task schedulles a coroutine on the event loop
     # Here both tasks run "same time" without the first one finishes
     task1 = asyncio.create_task(async_function("TEST1", 2))
@@ -141,66 +137,66 @@ async def main():
     print(task_result1)
     task_result2 = await task2
     print(task_result2)
-    
+
     """ Example 3 """
     print("EXAMPLE 3: using many tasks")
-    
+
     task1 = asyncio.create_task(async_function("TEST1", 2))
     task2 = asyncio.create_task(async_function("TEST2", 1))
     task_result2 = await task2
     print(task_result2)
     task_result1 = await task1
     print(task_result1)
-    
+
     """ Example 4 """
     print("EXAMPLE 4: run threads/processes")
-    
+
     # we have syncrhnonous code and want to run it async
     # wrap it!
-    
+
     # In case we want threads (IO Bound)
     print("example with threads")
-    task1 = asyncio.create_task(asyncio.to_thread(normal_sync_fcn,1))
-    task2 = asyncio.create_task(asyncio.to_thread(normal_sync_fcn,2))
-    
+    task1 = asyncio.create_task(asyncio.to_thread(normal_sync_fcn, 1))
+    task2 = asyncio.create_task(asyncio.to_thread(normal_sync_fcn, 2))
+
     result1 = await task1
     print("Thread 1 fully completed.")
     task_result2 = await task2
     print("Thread 1 fully completed.")
-    
+
     # In case we want processes (for CPU bound)
     from concurrent.futures import ProcessPoolExecutor
+
     print("example with processes")
     loop = asyncio.get_running_loop()
-    
+
     with ProcessPoolExecutor() as executor:
         task1 = loop.run_in_executor(executor, normal_sync_fcn, 1)
         task2 = loop.run_in_executor(executor, normal_sync_fcn, 2)
-        
+
         result1 = await task1
         print("Process 1 fully completed")
         result2 = await task2
         print("Process 2 fully completed")
-    
-    
+
     """ Example 5 """
     print("Example 5: Tasks groups and taks gather")
-    
+
     # Gather taks:
     # if one fails, shows exception and continue with others
-    tasks = [asyncio.create_task(async_function(i)) for i in range(1,3)]
+    tasks = [asyncio.create_task(async_function(i)) for i in range(1, 3)]
     # gather manually waits for all tasks
     results = await asyncio.gather(*tasks, return_exceptions=True)
     print(f"Taks results: {results}")
-    
+
     # Task group:
     # with first failure, it cancelled all other tasks
     # we use this when we want all our tasks to run succesfully! eg. calling a bunch or web requests
     async with asyncio.TaskGroup() as tg:
-        results = [tg.create_task(async_function(i)) for i in range(1,3)]
+        results = [tg.create_task(async_function(i)) for i in range(1, 3)]
         # all tasks are awaited when the contect manager exists
     print(f"Task group results: {[result.result() for result in results]}")
-    
+
 
 if __name__ == "__main__":
     asyncio.run(main())

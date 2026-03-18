@@ -3,7 +3,7 @@ import asyncio
 import httpx
 import time
 from PIL import Image
-import aiofiles # for asynchronous file operations
+import aiofiles  # for asynchronous file operations
 import cv2
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor
@@ -11,7 +11,6 @@ from concurrent.futures import ProcessPoolExecutor
 STORE_PATH = "/home/manuela/Dev/Study/Misc/Tutorials/async_image_processing/images"
 DOWNLOAD_LIMIT = 4
 image_urls = [
-    
     "https://images.unsplash.com/photo-1529778873920-4da4926a72c2?q=80&w=736&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D0",
     "https://images.unsplash.com/photo-1591824438708-ce405f36ba3d?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     "https://images.unsplash.com/photo-1437622368342-7a3d73a34c8f?q=80&w=1228&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -32,40 +31,47 @@ image_urls = [
     "https://images.unsplash.com/photo-1549692520-acc6669e2f0c?w=1920&h=1080&fit=crop",
 ]
 
-async def download_image(client: httpx.AsyncClient, url: str, number_file: str, semaphore: asyncio.Semaphore):
-    
+
+async def download_image(
+    client: httpx.AsyncClient, url: str, number_file: str, semaphore: asyncio.Semaphore
+):
+
     async with semaphore:
         response = await client.get(url, timeout=10, follow_redirects=True)
         response.raise_for_status()
-        
+
         file_path = f"{STORE_PATH}/img_{number_file}.jpg"
-        
+
         async with aiofiles.open(file_path, "wb") as f:
-            
+
             # stores entire file in memory (one big bytes object)
             # can be problematic with big files and concurrency
             # close is not needed, async with does it automatically
             # await f.write(await response.read())
-            
+
             # downloads small chunks of 8KB, writes chunkc in disk, descard and repeat
             # scales better, memory stays constant
             async for chunk in response.aiter_bytes(chunk_size=8192):
                 await f.write(chunk)
-            
+
             return file_path
-    
+
 
 async def download_images(urls: list[str]):
     dl_semaphore = asyncio.Semaphore(DOWNLOAD_LIMIT)
     async with httpx.AsyncClient() as client:
-        async with asyncio.TaskGroup() as tg: #Task group works with coroutines
+        async with asyncio.TaskGroup() as tg:  # Task group works with coroutines
             # tasks created and scheduled on event loop
-            tasks = [tg.create_task(download_image(client, url, img_number, dl_semaphore)) for img_number, url in enumerate(urls)]
+            tasks = [
+                tg.create_task(download_image(client, url, img_number, dl_semaphore))
+                for img_number, url in enumerate(urls)
+            ]
             # context manager internally awaits all tasks after creation, no need of calling await or gather
             # event loop runs all tasks... when all done, context manager exits
         img_paths = [task.result() for task in tasks]
 
     return img_paths
+
 
 # sequential download
 def sync_download(image_urls):
@@ -73,12 +79,13 @@ def sync_download(image_urls):
     for number_file, url in enumerate(image_urls):
         file_path = f"{STORE_PATH}/img_{number_file}.jpg"
         response = requests.get(url)
-        open(file_path, 'wb').write(response.content)
+        open(file_path, "wb").write(response.content)
         img_paths.append(file_path)
     return img_paths
 
+
 def sync_process_images(img: str):
-    #for img in img_paths:
+    # for img in img_paths:
     image = cv2.imread(img)
     width, height = image.shape[1], image.shape[0]
     center = (width // 2, height // 2)
@@ -89,43 +96,47 @@ def sync_process_images(img: str):
             rotation_matrix = cv2.getRotationMatrix2D(center, angle, scale)
             rotated_image = cv2.warpAffine(image, rotation_matrix, (width, height))
             cv2.imwrite(f"{img.split(".")[0]}_a{num_a}_s{num_s}.jpg", rotated_image)
-    
+
     txs = [np.random.randint(-500, 500) for t in np.arange(4)]
     tys = [np.random.randint(-500, 500) for t in np.arange(4)]
-    
+
     for tx, ty in zip(txs, tys):
         translation_matrix = np.array([[1, 0, tx], [0, 1, ty]], dtype=np.float32)
         translated_image = cv2.warpAffine(image, translation_matrix, (width, height))
         cv2.imwrite(f"{img.split(".")[0]}_t{tx}_{ty}.jpg", translated_image)
-    
+
     blurred = cv2.GaussianBlur(image, (9, 9), 0)
     cv2.imwrite(f"{img.split(".")[0]}_b.jpg", blurred)
-        
+
+
 async def process_images(img_paths: list[str]):
-    
+
     loop = asyncio.get_running_loop()
-    
-    with ProcessPoolExecutor(max_workers=6) as executor: #Executor works with futures
+
+    with ProcessPoolExecutor(max_workers=6) as executor:  # Executor works with futures
         # list of futures
-        tasks = [loop.run_in_executor(executor, sync_process_images, img) for img in img_paths]
+        tasks = [
+            loop.run_in_executor(executor, sync_process_images, img)
+            for img in img_paths
+        ]
         results = await asyncio.gather(*tasks)
-       
-    
+
+
 async def main():
-    
+
     start_time = time.perf_counter()
-    img_paths = await download_images(image_urls) #0.21s
-    #img_paths = sync_download(image_urls) #1.29 s
+    img_paths = await download_images(image_urls)  # 0.21s
+    # img_paths = sync_download(image_urls) #1.29 s
     down_time = time.perf_counter()
     print(img_paths)
     print(f"Downloading time: {down_time-start_time}")
-    
+
     start_time = time.perf_counter()
-    #sync_process_images(img_paths) #6s
-    await process_images(img_paths) #4s
+    # sync_process_images(img_paths) #6s
+    await process_images(img_paths)  # 4s
     process_time = time.perf_counter()
     print(f"Processing time: {process_time-start_time}")
-    
+
+
 if __name__ == "__main__":
     asyncio.run(main())
-    
