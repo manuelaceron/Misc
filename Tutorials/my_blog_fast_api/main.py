@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException, status
 from data.blog_entries import posts
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -22,7 +22,15 @@ fastapi dev main.py -> converts my functions to json (or HTML if needed)
   - Template inheritance important for maintanability and avoid repeated code:
     - Have main structure in parent with blocks
     - Templated inherits from parent and implement blocks
+    
+ - Add path parameters to endpoint
 """
+
+
+class PostNotFoundError(Exception):
+    pass
+
+
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")  # templates object
@@ -38,8 +46,8 @@ def home():
 """
 
 
-@app.get("/", include_in_schema=False)
-@app.get("/posts", include_in_schema=False)
+@app.get("/", include_in_schema=False, name="home")
+@app.get("/posts", include_in_schema=False, name="posts")
 def home(request: Request):
     return templates.TemplateResponse(
         request, "home.html", {"posts": posts, "title": "The 6AM Journal"}
@@ -49,3 +57,16 @@ def home(request: Request):
 @app.get("/api/posts")
 def get_posts():
     return posts
+
+
+@app.get("/api/posts/{post_id}", name="post_detail")
+def get_post(post_id: int):
+    for post in posts:
+        # get returns None if key doesnt exist
+        # ["id"] return error is key doesnt exist
+        if post.get("id") == post_id:
+            return post
+
+    # Custome exception
+    # raise PostNotFoundError(f"Post {post_id} not found")
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
