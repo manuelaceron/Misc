@@ -1,8 +1,12 @@
 from fastapi import FastAPI, Request, HTTPException, status
-from data.blog_entries import posts
+from data.blog_entries import posts, blog_name
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarlettHTTPException
+import exception_handler as Blog_exception
 
 """ 
 FastAPI Supports sync and async functions
@@ -45,13 +49,10 @@ def home():
     return f"<h1> Welcome to my blog! </h1>" 
 """
 
+data = {"posts": posts, "title": blog_name}
 
-@app.get("/", include_in_schema=False, name="home")
-@app.get("/posts", include_in_schema=False, name="posts")
-def home(request: Request):
-    return templates.TemplateResponse(
-        request, "home.html", {"posts": posts, "title": "The 6AM Journal"}
-    )
+
+# -------------------------------- API Routes --------------------------------
 
 
 @app.get("/api/posts")
@@ -59,7 +60,7 @@ def get_posts():
     return posts
 
 
-@app.get("/api/posts/{post_id}", name="post_detail")
+@app.get("/api/posts/{post_id}")
 def get_post(post_id: int):
     for post in posts:
         # get returns None if key doesnt exist
@@ -69,4 +70,23 @@ def get_post(post_id: int):
 
     # Custome exception
     # raise PostNotFoundError(f"Post {post_id} not found")
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
+
+# -------------------------------- HTML Routes --------------------------------
+
+
+@app.get("/", include_in_schema=False, name="home")
+@app.get("/posts", include_in_schema=False, name="posts")
+def home(request: Request):
+    return templates.TemplateResponse(request, "home.html", data)
+
+
+@app.get("/posts/{post_id}", include_in_schema=False, name="post_detail")
+def get_post_page(request: Request, post_id: int):
+    for post in posts:
+        if post.get("id") == post_id:
+            return templates.TemplateResponse(
+                request, "post.html", {"post": post, "title": data["title"]}
+            )
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
