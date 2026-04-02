@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarlettHTTPException
-import exception_handler as Blog_exception
+from exception_handler import BlogExceptionHandler
 
 """ 
 FastAPI Supports sync and async functions
@@ -51,7 +51,7 @@ def home():
 
 data = {"posts": posts, "title": blog_name}
 
-
+BlogExceptionHandler(app, templates)
 # -------------------------------- API Routes --------------------------------
 
 
@@ -90,3 +90,6 @@ def get_post_page(request: Request, post_id: int):
                 request, "post.html", {"post": post, "title": data["title"]}
             )
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
+
+# TODO: Validation errors (different kind of exceptions)
