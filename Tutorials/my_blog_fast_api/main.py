@@ -90,6 +90,3 @@ def get_post_page(request: Request, post_id: int):
                 request, "post.html", {"post": post, "title": data["title"]}
             )
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
-
-
-# TODO: Validation errors (different kind of exceptions)

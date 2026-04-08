@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, status
 from starlette.exceptions import HTTPException as StarlettHTTPException
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.exceptions import RequestValidationError
 
 """ 
 Exception handlers are not called through the routing system like routes
@@ -47,5 +48,25 @@ class BlogExceptionHandler:
                     "status_code": exception.status_code,
                     "title": exception.status_code,
                     "message": message,
+                },
+            )
+
+        @self.app.exception_handler(RequestValidationError)
+        def validation_exception_handler(
+            request: Request,
+            exception: RequestValidationError,
+        ):
+            if request.url.path.startswith("/api"):
+                return JSONResponse(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    content={"detail": exception.errors()},
+                )
+            return self.template.TemplateResponse(
+                request,
+                "error.html",
+                {
+                    "status_code": status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    "title": status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    "message": "Invalid request. Please check your input and try again.",
                 },
             )
