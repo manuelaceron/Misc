@@ -3,9 +3,6 @@ from data.blog_entries import posts, blog_name
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
-from starlette.exceptions import HTTPException as StarlettHTTPException
 from exception_handler import BlogExceptionHandler
 
 """ 
@@ -71,6 +68,28 @@ def get_post(post_id: int):
     # Custome exception
     # raise PostNotFoundError(f"Post {post_id} not found")
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
+
+@app.post("/api/create_posts")
+def create_post(new_post: dict):
+
+    test = [post["id"] for post in posts]
+    test.sort()
+    new_post["id"] = test[-1] + 1
+    posts.append(new_post)
+    if new_post.get("title") == None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Post title is missing"
+        )
+    return new_post
+
+    """
+    Accept JSON with title, content
+    Automatically generate id
+    Append to posts
+    Return created post
+    Return 400 if title is missing
+    """
 
 
 # -------------------------------- HTML Routes --------------------------------
