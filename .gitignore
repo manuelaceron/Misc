@@ -3,3 +3,4 @@
 .env
 *.jpg
 */my_blog_fast_api/data/
+*/my_blog_fast_api/*.txt

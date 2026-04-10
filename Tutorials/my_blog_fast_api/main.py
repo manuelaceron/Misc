@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, HTTPException, status
-from data.blog_entries import posts, blog_name
+from data.blog_entries import posts, blog_name, about
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -53,10 +53,19 @@ BlogExceptionHandler(app, templates)
 
 
 @app.get("/api/posts")
-def get_posts():
+def get_posts(title: str | None = None):
+    if title:
+        for post in posts:
+            if post.get("title") == title:
+                return post
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No post found with title: {title}.",
+        )
     return posts
 
 
+# Add Query Parameter
 @app.get("/api/posts/{post_id}")
 def get_post(post_id: int):
     for post in posts:
@@ -69,8 +78,16 @@ def get_post(post_id: int):
     # raise PostNotFoundError(f"Post {post_id} not found")
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
 
+    """
+    Accept JSON with title, content
+    Automatically generate id
+    Append to posts
+    Return created post
+    Return 400 if title is missing
+    """
 
-@app.post("/api/create_posts")
+
+@app.post("/api/create_post")
 def create_post(new_post: dict):
 
     test = [post["id"] for post in posts]
@@ -83,13 +100,24 @@ def create_post(new_post: dict):
         )
     return new_post
 
-    """
-    Accept JSON with title, content
-    Automatically generate id
-    Append to posts
-    Return created post
-    Return 400 if title is missing
-    """
+
+""" Remove post if exists
+Return 204 on success
+Raise 404 if not found """
+
+
+@app.delete("/api/delete_post/{post_id}")
+def delete_post(post_id: int):
+    global posts
+    ids = [p.get("id") for p in posts]
+    if post_id not in ids:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Post {post_id} not found"
+        )
+    else:
+        posts = [p for p in posts if p.get("id") != post_id]
+
+    return status.HTTP_204_NO_CONTENT
 
 
 # -------------------------------- HTML Routes --------------------------------
@@ -109,3 +137,8 @@ def get_post_page(request: Request, post_id: int):
                 request, "post.html", {"post": post, "title": data["title"]}
             )
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
+
+@app.get("/about", include_in_schema=False, name="about")
+def about_page(request: Request):
+    return templates.TemplateResponse(request, "about.html", {"about": about})
