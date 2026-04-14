@@ -1,9 +1,11 @@
-from fastapi import FastAPI, Request, HTTPException, status
-from data.blog_entries import posts, blog_name, about
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI
+from config import templates
+from routes.api import router as api_router
+from routes.web import router as web_router
 from fastapi.staticfiles import StaticFiles
-from exception_handler import BlogExceptionHandler
+from exceptions.exception_handler import (
+    BlogExceptionHandler,
+)
 
 """ 
 FastAPI Supports sync and async functions
@@ -28,117 +30,8 @@ fastapi dev main.py -> converts my functions to json (or HTML if needed)
 """
 
 
-class PostNotFoundError(Exception):
-    pass
-
-
 app = FastAPI()
+app.include_router(api_router)
+app.include_router(web_router)
 app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")  # templates object
-
-
-""" 
-First example of api route with HTML response
-@app.get("/", response_class=HTMLResponse, include_in_schema=False)
-@app.get("/posts", response_class=HTMLResponse, include_in_schema=False)
-def home():
-    # return {"message": "Welcome to my blog!"}
-    return f"<h1> Welcome to my blog! </h1>" 
-"""
-
-data = {"posts": posts, "title": blog_name}
-
 BlogExceptionHandler(app, templates)
-# -------------------------------- API Routes --------------------------------
-
-
-@app.get("/api/posts")
-def get_posts(title: str | None = None):
-    if title:
-        for post in posts:
-            if post.get("title") == title:
-                return post
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No post found with title: {title}.",
-        )
-    return posts
-
-
-# Add Query Parameter
-@app.get("/api/posts/{post_id}")
-def get_post(post_id: int):
-    for post in posts:
-        # get returns None if key doesnt exist
-        # ["id"] return error is key doesnt exist
-        if post.get("id") == post_id:
-            return post
-
-    # Custome exception
-    # raise PostNotFoundError(f"Post {post_id} not found")
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
-
-    """
-    Accept JSON with title, content
-    Automatically generate id
-    Append to posts
-    Return created post
-    Return 400 if title is missing
-    """
-
-
-@app.post("/api/create_post")
-def create_post(new_post: dict):
-
-    test = [post["id"] for post in posts]
-    test.sort()
-    new_post["id"] = test[-1] + 1
-    posts.append(new_post)
-    if new_post.get("title") == None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Post title is missing"
-        )
-    return new_post
-
-
-""" Remove post if exists
-Return 204 on success
-Raise 404 if not found """
-
-
-@app.delete("/api/delete_post/{post_id}")
-def delete_post(post_id: int):
-    global posts
-    ids = [p.get("id") for p in posts]
-    if post_id not in ids:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"Post {post_id} not found"
-        )
-    else:
-        posts = [p for p in posts if p.get("id") != post_id]
-
-    return status.HTTP_204_NO_CONTENT
-
-
-# -------------------------------- HTML Routes --------------------------------
-
-
-@app.get("/", include_in_schema=False, name="home")
-@app.get("/posts", include_in_schema=False, name="posts")
-def home(request: Request):
-    return templates.TemplateResponse(request, "home.html", data)
-
-
-@app.get("/posts/{post_id}", include_in_schema=False, name="post_detail")
-def get_post_page(request: Request, post_id: int):
-    for post in posts:
-        if post.get("id") == post_id:
-            return templates.TemplateResponse(
-                request, "post.html", {"post": post, "title": data["title"]}
-            )
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
-
-
-@app.get("/about", include_in_schema=False, name="about")
-def about_page(request: Request):
-    return templates.TemplateResponse(request, "about.html", {"about": about})
